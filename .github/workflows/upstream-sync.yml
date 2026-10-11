@@ -5,6 +5,10 @@
 # the fork network), so nothing is pushed here and the PR keeps tracking
 # upstream until it is merged. Merge it with "Create a merge commit" (not
 # squash or rebase), then redeploy: `node scripts/dimatte-deploy.mjs`.
+#
+# Needs the organization setting Settings > Actions > General > Workflow
+# permissions > "Allow GitHub Actions to create and approve pull requests".
+# While it is off, the run fails with a one-click link to open the PR by hand.
 name: Upstream sync
 
 on:
@@ -60,9 +64,17 @@ jobs:
           EOF
           )
 
-          gh api "repos/$REPO/pulls" \
+          if gh api "repos/$REPO/pulls" \
             -f title="Sync upstream every-app/open-seo ($(date -u +%Y-%m-%d))" \
             -f head="$UPSTREAM_OWNER:main" \
             -f base=main \
             -f body="$body" \
-            --jq '"Opened " + .html_url'
+            --jq '"Opened " + .html_url'; then
+            exit 0
+          fi
+
+          compare="https://github.com/$REPO/compare/main...$UPSTREAM_OWNER:main?expand=1"
+          message="Could not open the sync PR (is \"Allow GitHub Actions to create and approve pull requests\" off for the organization?). Open it by hand: $compare"
+          echo "::error::$message"
+          echo "$message" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
