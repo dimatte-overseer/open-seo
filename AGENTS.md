@@ -56,3 +56,26 @@ Do not mine an entire session for papercuts or start a broad cleanup unless the 
 Reviewer context lives in `docs/maintainers/review-guidelines.md`: the hard invariants (tenant scoping, dual-dialect persistence, billing seams, SSRF handling) and the false-positive controls that keep reviewers from flagging intentional behavior. After a merge-ready or other code review verifies a finding, add to that file only when the finding exposes a recurring or high-risk repository invariant that existing context and automated checks do not capture. Do not promote one-off bugs or preferences into permanent review rules.
 
 Changes to `AGENTS.md`, `.claude/CLAUDE.md`, `.agents/skills/**`, `.github/**`, and `docs/maintainers/review-guidelines.md` alter the review control plane and must receive explicit maintainer review. CODEOWNERS requests that review; where repository settings allow, enable GitHub's requirement for code-owner approval.
+
+## Dimatte deployment: using OpenSEO from an agent
+
+This fork is deployed once for all of Nicolás Cerón's companies at https://open-seo.nicocerond.workers.dev, behind Cloudflare Access. Operations live in the README's "Dimatte deployment" section.
+
+- **Claude Code:** the `openseo` MCP server is configured at user scope (every project): `https://open-seo.nicocerond.workers.dev/mcp`, with `headersHelper` `~/.claude/mcp-helpers/openseo-headers.sh`, which reads the Access service token from the macOS keychain. Check it with `claude mcp get openseo`.
+- **Other clients:** send `CF-Access-Client-Id` and `CF-Access-Client-Secret` from the keychain items `openseo-access-client-id` and `openseo-access-client-secret` on every request to `/mcp` (Streamable HTTP, JSON-RPC). Never print, log or commit them. Without them Access answers 302 (browser login) or 401.
+- **Identity:** the service token acts as its own agent user in the shared workspace, so agents see the same projects as people signed in through Access.
+- **Workflow:** call `list_projects`, pick the `projectId` of the site, then use the research, rank-tracking, audit and AI-visibility tools with it. `create_project` and the project-context tools use no credits; anything that calls DataForSEO costs money on the owner's DataForSEO balance, so estimate first (`estimate_rank_tracker_cost`, `estimate_ai_visibility_cost`) and ask before large batches. Until `DATAFORSEO_API_KEY` is set (owner action, `scripts/set-dataforseo-key.sh`) data tools fail with a missing-key error.
+- **Markets:** every project starts on United States / English (2840/en). Pass `locationCode`/`languageCode` per call, or change the project's market in its dashboard settings once the owner confirms it.
+
+| Site                | Project ID                             |
+| ------------------- | -------------------------------------- |
+| dardo.studio        | `5031d822-f577-4897-9849-39dc83e9e687` |
+| careta.studio       | `57da6bc0-2567-4578-b0a9-58032aa7c0a0` |
+| hyper.exposed       | `77bdde73-7a3f-4852-a6bb-d9f849f0c8af` |
+| hypers.dev          | `208061a5-f75c-4ea7-9640-87d465cd3c90` |
+| malvavisco.app      | `cc234885-1fd3-48d6-b6c9-e59bad2c5e7e` |
+| unpangram.com       | `92ac0513-7478-48a6-9880-e15e9942e32e` |
+| amediotonomusic.com | `75b408cd-0f70-4a5e-b388-ad92d87db017` |
+| gissimusic.com      | `d074c390-973d-4276-9c70-70e9f7b30555` |
+
+Add a site with `create_project` (name and domain = the bare domain), then add it to this table.

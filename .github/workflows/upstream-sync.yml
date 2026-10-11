@@ -1,0 +1,80 @@
+# Dimatte fork: once a week, open a pull request that brings
+# every-app/open-seo's main into this fork's main. Never merges by itself.
+#
+# The PR's head is upstream's own main branch (a cross-repository PR inside
+# the fork network), so nothing is pushed here and the PR keeps tracking
+# upstream until it is merged. Merge it with "Create a merge commit" (not
+# squash or rebase), then redeploy: `node scripts/dimatte-deploy.mjs`.
+#
+# Needs the organization setting Settings > Actions > General > Workflow
+# permissions > "Allow GitHub Actions to create and approve pull requests".
+# While it is off, the run fails with a one-click link to open the PR by hand.
+name: Upstream sync
+
+on:
+  schedule:
+    - cron: "23 13 * * 1" # Mondays 13:23 UTC (08:23 Bogota)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  open-sync-pr:
+    if: github.repository == 'dimatte-overseer/open-seo'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open the upstream sync PR when upstream is ahead
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          UPSTREAM_OWNER: every-app
+        run: |
+          set -euo pipefail
+
+          ahead=$(gh api "repos/$REPO/compare/main...$UPSTREAM_OWNER:main" --jq '.ahead_by')
+          echo "Upstream main is $ahead commit(s) ahead of $REPO main."
+          if [ "$ahead" -eq 0 ]; then
+            exit 0
+          fi
+
+          existing=$(gh api "repos/$REPO/pulls?state=open&base=main&head=$UPSTREAM_OWNER:main" --jq '.[0].html_url // empty')
+          if [ -n "$existing" ]; then
+            echo "Sync PR already open (it follows upstream automatically): $existing"
+            exit 0
+          fi
+
+          body=$(cat <<EOF
+          Weekly sync of [every-app/open-seo](https://github.com/every-app/open-seo) \`main\` into this fork ($ahead new upstream commit(s) when opened). This PR follows upstream \`main\` until it is merged.
+
+          Before merging:
+          - Review the upstream changes, especially \`wrangler.jsonc\`, \`wrangler.audit.jsonc\`, \`drizzle/sqlite/\` (D1 migrations) and \`src/middleware/ensure-user/cloudflareAccess.ts\` (this fork's service-token patch).
+          - Merge with **Create a merge commit** (squash or rebase would make the next sync replay the same commits).
+
+          After merging, deploy from an up-to-date checkout of \`main\`:
+
+          \`\`\`sh
+          git pull && pnpm install && node scripts/dimatte-deploy.mjs
+          \`\`\`
+          EOF
+          )
+
+          if gh api "repos/$REPO/pulls" \
+            -f title="Sync upstream every-app/open-seo ($(date -u +%Y-%m-%d))" \
+            -f head="$UPSTREAM_OWNER:main" \
+            -f base=main \
+            -f body="$body" \
+            --jq '"Opened " + .html_url'; then
+            exit 0
+          fi
+
+          compare="https://github.com/$REPO/compare/main...$UPSTREAM_OWNER:main?expand=1"
+          message="Could not open the sync PR (is \"Allow GitHub Actions to create and approve pull requests\" off for the organization?). Open it by hand: $compare"
+          echo "::error::$message"
+          echo "$message" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
