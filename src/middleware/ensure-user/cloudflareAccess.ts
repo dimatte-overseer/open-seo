@@ -90,9 +90,32 @@ export async function resolveCloudflareAccessContext(
   const userId = typeof payload.sub === "string" ? payload.sub : null;
   const userEmail = typeof payload.email === "string" ? payload.email : null;
 
-  if (!userId || !userEmail) {
-    throw new AppError("UNAUTHENTICATED");
+  if (userId && userEmail) {
+    return resolveSharedWorkspaceContext(userId, userEmail);
   }
 
-  return resolveSharedWorkspaceContext(userId, userEmail);
+  // Dimatte fork: an Access service token (a "Service Auth" policy on this
+  // application) carries no user — `sub` is empty and `common_name` holds
+  // the token's client ID. Access already authorized it for this AUD, so it
+  // works in the shared workspace as its own agent user, keyed by a hash of
+  // the client ID so the ID itself is never stored.
+  const serviceTokenId =
+    payload.type === "app" && typeof payload.common_name === "string"
+      ? payload.common_name
+      : null;
+  if (!userId && serviceTokenId) {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(serviceTokenId),
+    );
+    const hash = Array.from(new Uint8Array(digest).slice(0, 8), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    return resolveSharedWorkspaceContext(
+      `access-service-token-${hash}`,
+      `agent-${hash}@service-token.invalid`,
+    );
+  }
+
+  throw new AppError("UNAUTHENTICATED");
 }
