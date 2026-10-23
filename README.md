@@ -38,6 +38,8 @@ Try OpenSEO for free on our website. If you want to support the project, a hoste
 
 OpenSEO exposes an MCP server so AI agents like Claude Code, OpenClaw, and Hermes can use your SEO data directly. Agent Skills are reusable workflows that guide your agent through SEO tasks using the MCP.
 
+- [Set up ChatGPT web or desktop](https://openseo.so/docs/chatgpt) (works on Free and paid ChatGPT plans)
+- [Set up Codex](https://openseo.so/docs/codex-plugin)
 - [Set up OpenSEO MCP](https://openseo.so/docs/mcp)
 - [Set up OpenSEO Agent Skills](https://openseo.so/docs/skills/setup)
 
@@ -96,5 +98,5 @@ This fork (`dimatte-overseer/open-seo`) runs one OpenSEO shared by all of Nicol√
 - **Secrets:** `DATAFORSEO_API_KEY` (base64 of `login:api_password`) on both Workers, set with `scripts/set-dataforseo-key.sh` (prompts, never echoes). Until it is set the UI, projects and MCP work but every SEO data feature reports the key as missing. Optional: `OPENROUTER_API_KEY` (SAM agent, research helpers) and `CONTEXT_API_KEY` (JS rendering fallback), set with `pnpm exec wrangler secret put <NAME> --name open-seo`.
 - **Deploy:** `pnpm install && node scripts/dimatte-deploy.mjs` from an up-to-date `main`. It builds, points the generated Wrangler configs at the resources above, applies D1 migrations, deploys both Workers and then fails (and hides the URL again) if an anonymous request is not stopped by Access. `--hidden` deploys with the workers.dev and preview URLs off. Do not use `pnpm run deploy` or `pnpm deploy:selfhost`: they target upstream's resource ids or Alchemy.
 - **Updating from upstream:** `.github/workflows/upstream-sync.yml` opens a PR from `every-app:main` every Monday when upstream is ahead (never auto-merges). It needs the organization setting Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests"; while that is off the run fails with a one-click link to open the PR by hand. Review it (watch `wrangler*.jsonc`, `drizzle/sqlite/` and `src/middleware/ensure-user/cloudflareAccess.ts`), merge with a merge commit, then deploy. By hand: `git fetch upstream && git merge upstream/main`.
-- **Fork changes:** service-token requests get their own agent user in the shared workspace (`src/middleware/ensure-user/cloudflareAccess.ts`), the deploy and key scripts, the sync workflow, and these notes. Upstream's `docker-image`, `pr-preview` and `sourcemaps` workflows are disabled in this fork.
+- **Fork changes:** service-token requests get their own agent user in the shared workspace (`src/middleware/ensure-user/cloudflareAccess.ts`), the deploy and key scripts, the sync workflow, and these notes. Upstream's `docker-image`, `pr-preview`, `sourcemaps`, `deploy-production` and `deploy-website` workflows are disabled in this fork.
 - **Free-plan limits:** 10 ms CPU per request, 100k requests a day, 5 cron triggers per account (this one uses the fifth), no Browser Run for "Render JavaScript" audits.
