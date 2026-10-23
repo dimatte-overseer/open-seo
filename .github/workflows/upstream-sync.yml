@@ -8,7 +8,10 @@
 #
 # Needs the organization setting Settings > Actions > General > Workflow
 # permissions > "Allow GitHub Actions to create and approve pull requests".
-# While it is off, the run fails with a one-click link to open the PR by hand.
+# The PR is opened with maintainer_can_modify=false: the workflow token can't
+# grant "allow edits" on upstream's branch, and asking for it fails with 422
+# (fork_collab), as on 19 October 2026. If it still fails, the run ends with a
+# one-click link to open the PR by hand.
 name: Upstream sync
 
 on:
@@ -68,6 +71,7 @@ jobs:
             -f title="Sync upstream every-app/open-seo ($(date -u +%Y-%m-%d))" \
             -f head="$UPSTREAM_OWNER:main" \
             -f base=main \
+            -F maintainer_can_modify=false \
             -f body="$body" \
             --jq '"Opened " + .html_url'; then
             exit 0
