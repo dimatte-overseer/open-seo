@@ -89,7 +89,7 @@ Follow along for updates:
 
 ## Dimatte deployment
 
-This fork (`dimatte-overseer/open-seo`) runs one OpenSEO shared by all of Nicolás Cerón's companies, on the Cloudflare free plan (account `290e6974d5ab11e9b3563b1c6f9b4584`). Agents: see the Dimatte section at the end of [`AGENTS.md`](./AGENTS.md).
+This fork (`dimatte/open-seo`) runs one OpenSEO shared by all of Nicolás Cerón's companies, on the Cloudflare free plan (account `290e6974d5ab11e9b3563b1c6f9b4584`). Agents: see the Dimatte section at the end of [`AGENTS.md`](./AGENTS.md).
 
 - **App:** https://open-seo.nicocerond.workers.dev (MCP: `/mcp`). No company domain on purpose.
 - **Cloudflare:** Workers `open-seo` (app, `*/5` cron, Smart Placement) and `open-seo-audit` (site audits, no public URL); D1 `open-seo` (ENAM); KV `open-seo-kv` and `open-seo-oauth-kv`; R2 `open-seo` (DataForSEO cache, `dataforseo-cache/` expires after 7 days); Workflows `rank-check-workflow`, `ai-visibility-workflow`, `site-audit-workflow`; Durable Objects `SamChatAgent`, `AuditScratchpad`. Workers Logs and traces are on (`observability` in `wrangler.jsonc`). Anonymous telemetry to upstream is off.

@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   open-sync-pr:
-    if: github.repository == 'dimatte-overseer/open-seo'
+    if: github.repository == 'dimatte/open-seo'
     runs-on: ubuntu-latest
     steps:
       - name: Open the upstream sync PR when upstream is ahead
